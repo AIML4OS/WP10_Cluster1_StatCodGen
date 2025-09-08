@@ -1,0 +1,7 @@
+*.class
+codauto.egg-info/
+build/
+__pycache__/
+codauto/__pycache__/
+codauto/.ipynb_checkpoints/
+pruebas_codifier.py
