@@ -2,8 +2,6 @@
 
 # codauto v.0.1.0
 
-[TOC]
-
 ## Description
 The idea of this library is to assist official statisticians in classifying variables according to standards, 
 such as economic activities using [CNAE](https://ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&cid=1254736177032&menu=ultiDatos&idp=1254735976614), 
