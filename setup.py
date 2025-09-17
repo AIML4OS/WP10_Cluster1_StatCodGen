@@ -14,7 +14,7 @@ PACKAGE_NAME = 'codauto'
 AUTHOR = 'Unidad de clasificaciones INE'
 AUTHOR_EMAIL = 'git.metodologia@ine.es'
 URL = 'https://github.com/AIML4OS/WP10_Cluster1_StatCodGen'
-LICENSE = 'EUPL European Public License'  # Tipo de licencia
+LICENSE = 'EUPL European Public License'
 DESCRIPTION = 'Library for training an automatic coder'
 LONG_DESCRIPTION = (HERE / "README.md").read_text(encoding='utf-8')  
 LONG_DESC_TYPE = "Long description"
