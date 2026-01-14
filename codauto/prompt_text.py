@@ -47,4 +47,11 @@ Lista de palabras: <title>
 Texto: <includes>
 """
 
+promt_data_de = """
+Stell dir vor, du bist ein Gewerbetreibender und deine Tätigkeit fällt in diese Klasse rein <title>. 
+Schreibe etwa 50 fiktive Tätigkeiten. Und zeige lediglich die Tätigkeiten sonst nichts kurz und knapp. 
+In der genannten Klasse sind folgende Tätigkeiten eingeschlossen: <includes>, die berücksichtigt werden können. 
+Diese Tätigkeiten sind ausgeschlossen: <excludes>.
+"""
+
 
