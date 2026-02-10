@@ -232,7 +232,7 @@ class Codifier(ABC):
         data_df[col_n_0] = data_df[col_n_0].apply(
             lambda n: self.get_code(str(n).replace('.', ''))
         )
-        data_df[col_n_1] = data_df[col_n_1].apply(preprocess_text, args=self.language)
+        data_df[col_n_1] = data_df[col_n_1].apply(preprocess_text, args=(self.language,))
         data_df[col_n_1] = data_df[col_n_1].apply(
             lambda desc: np.nan if len(desc) <= self.min_lenght_texts else desc
         )

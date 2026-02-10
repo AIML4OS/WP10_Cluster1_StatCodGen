@@ -289,3 +289,27 @@ class StructuredCPA(Structured):
         """
         code = code.replace('.', '')
         return len(code)-1
+
+class StructuredWZ(Structured):
+    """
+    Structured hierarchy for Wirtschaftszweigklassifikation/WZ (German NACE).
+
+    Levels are determined strictly by the length of the classification code.
+    """
+
+    def get_level(self, code):
+        """
+        Compute the hierarchical level for a WZ code.
+
+        Parameters
+        ----------
+        code : str
+            CPA classification code.
+
+        Returns
+        -------
+        int
+            Hierarchical level based on code length minus one.
+        """
+        code = code.replace('.', '')
+        return len(code)-1
