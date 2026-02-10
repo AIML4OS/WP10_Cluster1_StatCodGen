@@ -39,6 +39,7 @@ class Codifier(ABC):
         correspondences: Dictionary mapping old codes to new codes.
         train_df (pd.DataFrame): Cleaned training dataset.
         test_df (pd.DataFrame): Cleaned testing dataset with hierarchical labels.
+        language (str): The language of your textual data.
 
     Methods:
         get_correspondences(corres_df):
@@ -99,9 +100,11 @@ class Codifier(ABC):
                  test_df,
                  root_path,
                  corres_df=None,
-                 min_lenght_texts=3
+                 min_lenght_texts=3,
+                 language='es'
                  ):
         self.root_path = root_path
+        self.language = language
         os.makedirs(self.root_path, exist_ok=True)
         self.logger = logging.getLogger(f'CNAECodifier.{id(self)}')
         self.logger.setLevel(logging.INFO)
@@ -229,7 +232,7 @@ class Codifier(ABC):
         data_df[col_n_0] = data_df[col_n_0].apply(
             lambda n: self.get_code(str(n).replace('.', ''))
         )
-        data_df[col_n_1] = data_df[col_n_1].apply(preprocess_text)
+        data_df[col_n_1] = data_df[col_n_1].apply(preprocess_text, args=self.language)
         data_df[col_n_1] = data_df[col_n_1].apply(
             lambda desc: np.nan if len(desc) <= self.min_lenght_texts else desc
         )
