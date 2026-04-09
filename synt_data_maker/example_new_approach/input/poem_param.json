@@ -1,0 +1,16 @@
+{
+    "en": {
+        "topic": {
+            "l": "love",
+            "c": "city",
+            "w": "war"
+        }
+    },
+    "sp": {
+        "topic": {
+            "l": "amor",
+            "c": "ciudad",
+            "w": "guerra"
+        }
+    }
+}

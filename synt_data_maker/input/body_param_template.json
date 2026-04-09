@@ -1,0 +1,4 @@
+{
+  "en": "Write the examples in **language**.\nWrite **number** examples.\nThe examples must contain **len_constraint** words.\nThe examples must be **output_format**.\nYou must only answer with examples; do not provide an introduction.",
+  "sp": "Escribe los ejemplos en **language**.\nEscribe **number** ejemplos.\nLos ejemplos deben contener **len_constraint** palabras.\nLos ejemplos deben estar **output_format**.\nSolo debes responder con ejemplos; no proporciones una introducción."
+}

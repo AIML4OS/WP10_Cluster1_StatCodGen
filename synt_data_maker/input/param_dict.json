@@ -1,0 +1,42 @@
+{
+  "en": {
+    "task": {
+      "generate": "I want you to generate specific examples of economic activities that fit a given description.",
+      "process": "I want you to extract all specific examples of economic activities included in a given description.",
+      "combine": "I am going to give you a list of words and a description of economic activities in Norwegian Bokmål. I would like you to create new examples of economic activities by combining the different words. The examples must fit with the description"
+    },
+    "language": {
+      "sp": "spanish",
+      "en": "english",
+      "nb": "bokmål norwegian"
+    },
+    "output_format": {
+      "lines": "separated by line break"
+    },
+    "len_constraint": {
+      "short": "between 1-5",
+      "medium": "between 5-15",
+      "long": "more than 15"
+    }
+  },
+  "sp": {
+    "task": {
+      "generate": "Quiero que generes ejemplos específicos de actividades económicas que encajen con una descripción dada.",
+      "process": "Quiero que extraigas todos los ejemplos específicos de actividades económicas incluidos en una descripción dada.",
+      "combine": "Voy a darte una lista de palabras y una descripción de actividades económicas en noruego Bokmål. Me gustaría que crearas nuevos ejemplos de actividades económicas combinando las diferentes palabras. Los ejemplos deben ajustarse a la descripción."
+    },
+    "language": {
+      "sp": "español",
+      "en": "inglés",
+      "nb": "noruego bokmål"
+    },
+    "output_format": {
+      "lines": "separados por salto de línea"
+    },
+    "len_constraint": {
+      "short": "entre 1 y 5",
+      "medium": "entre 5 y 15",
+      "long": "más de 15"
+    }
+  }
+}
