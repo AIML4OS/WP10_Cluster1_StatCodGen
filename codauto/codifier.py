@@ -40,6 +40,7 @@ class Codifier(ABC):
         train_df (pd.DataFrame): Cleaned training dataset.
         test_df (pd.DataFrame): Cleaned testing dataset with hierarchical labels.
         language (str): The language of your textual data.
+        preprocess (bool): Specifies whether the text from the training, test, or prediction set should be preprocessed.
 
     Methods:
         get_correspondences(corres_df):
@@ -101,10 +102,12 @@ class Codifier(ABC):
                  test_df=None,
                  corres_df=None,
                  min_lenght_texts=3,
-                 language='es'
+                 language='es',
+                 preprocess = True
                  ):
         self.root_path = root_path
         self.language = language
+        self.preprocess = preprocess
         os.makedirs(self.root_path, exist_ok=True)
         self.logger = logging.getLogger(f'CNAECodifier.{id(self)}')
         self.logger.setLevel(logging.INFO)
@@ -238,10 +241,11 @@ class Codifier(ABC):
         data_df[col_n_0] = data_df[col_n_0].apply(
             lambda n: self.get_code(str(n).replace('.', ''))
         )
-        data_df[col_n_1] = data_df[col_n_1].apply(preprocess_text, args=(self.language,))
-        data_df[col_n_1] = data_df[col_n_1].apply(
-            lambda desc: np.nan if len(desc) <= self.min_lenght_texts else desc
-        )
+        if self.preprocess:
+            data_df[col_n_1] = data_df[col_n_1].apply(preprocess_text, args=(self.language,))
+            data_df[col_n_1] = data_df[col_n_1].apply(
+                lambda desc: np.nan if len(desc) <= self.min_lenght_texts else desc
+            )
         return data_df
 
     def load_data(self, data_df, data_name='data_df'):
@@ -966,7 +970,7 @@ class Codifier(ABC):
         raw_predictions = self.get_pred_for_batch(
             desc_l_not_direct_recoding,
             idxs_not_direct_recoding,
-            True
+            self.preprocess
         )
 
         for idx, original_code in zip(
