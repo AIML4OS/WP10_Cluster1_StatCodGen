@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.colors as colors
 
 
-def preprocess_text(input_str):
+def preprocess_text(input_str, language):
     """
     Cleans and normalizes the input text by:
     - Converting to lowercase
@@ -23,15 +23,27 @@ def preprocess_text(input_str):
 
     Args:
         input_str (str): Input text to preprocess.
+        language (str) ['es', 'de']: Preprocess according to an available locale
     Returns:
         str: Cleaned, normalized UTF-8 string.
     """
     output_str = str(input_str).lower()
-    output_str = output_str.replace('ñ', '__enie__')
-    output_str = unicodedata.normalize('NFD', output_str)
-    output_str = output_str.encode('ascii', 'ignore').decode('utf-8')
-    output_str = output_str.replace('__enie__', 'ñ')
-    output_str = re.sub(r'[^a-z ñ]', '', output_str)
+
+    if language == 'es':
+        output_str = output_str.replace('ñ', '__enie__')
+        output_str = unicodedata.normalize('NFD', output_str)
+        output_str = output_str.encode('ascii', 'ignore').decode('utf-8')
+        output_str = output_str.replace('__enie__', 'ñ')
+        output_str = re.sub(r'[^a-z ñ]', '', output_str)
+
+    if language == 'de':
+        output_str = output_str.replace('ä', 'ae')
+        output_str = output_str.replace('ö', 'oe')
+        output_str = output_str.replace('ü', 'ue')
+        output_str = output_str.replace('ß', 'ss')  
+        output_str = unicodedata.normalize('NFD', output_str)
+        output_str = output_str.encode('ascii', 'ignore').decode('utf-8')
+        
     return ' '.join(output_str.split())
 
 

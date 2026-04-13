@@ -279,7 +279,7 @@ class CodifierFastText(Codifier):
         """
         if clean_samples:
             samples = [
-                preprocess_text(sample) for sample in samples
+                preprocess_text(sample, self.language) for sample in samples
             ]
 
         preds_raw = self.model.predict(

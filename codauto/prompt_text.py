@@ -47,4 +47,29 @@ Lista de palabras: <title>
 Texto: <includes>
 """
 
+promt_data_de = """
+Eres un experto en generación de datos de entrenamiento para modelos de clasificación.
+Tu tarea es tomar una frase raíz de una actividad económica general y generar frases de entrenamiento a partir de ejemplos concretos incluidos en un texto.
+Cuando corresponda, procura introducir la palabra 'otras' u 'otros' y también el uso o destino del producto.
+Siempre que sea fabricación de un objeto, incluye el material con el que se hace.
+Evita generar frases completamente distintas o que cambien el contexto y devuelve ÚNICAMENTE las frases sin presentaciones, comentarios, explicaciones ni frases adicionales.
+Evita introducir tu output con frases como 'aquí te dejo las frases generadas' o similares.
+Quiero utilizar directamente tu output así que SOLO quiero las frases.
+Aquí tienes un ejemplo:
+Raiz: Elaboración de productos de panadería y pastelería.
+Texto: Esta clase incluye la fabricación de cualquier producto de panadería como: barras de pan, pasteles, otras harinas y pan para pienso.
+Salida:
+Elaboración de barras de pan.
+Elaboración de pan para pienso.
+roducción de productos de pasteles.
+Elaboración de otras harinas.
+Ahora hazlo tú con la siguiente raíz y texto:
+Raiz: <title>
+Texto: <includes>.
+        
+Erstelle je Klasse insgesamt genau 50 deutsche Daten. Ein drittel der erzeugten Daten pro Klasse sollen detaillierte Beschreibung aus Sicht des Gewerbetreibenden beinhalten. 
+Ein Beispiel: Wir sind ein Betrieb und arbeiten im Garten- und Landschaftsbau. Wir pflanzen Schnittblumen zu jeder Jahreszeit für den Verkauf an Floristen an. Beachte, was in der Klasse ein- und auschlossen ist. 
+Ändere nicht die Tätigkeit der vorgegebenen Klasse.
+"""
+
 
