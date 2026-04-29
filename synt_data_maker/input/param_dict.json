@@ -8,7 +8,8 @@
     "language": {
       "sp": "spanish",
       "en": "english",
-      "nb": "bokmål norwegian"
+      "nb": "bokmål norwegian",
+      "de": "german"
     },
     "output_format": {
       "lines": "separated by line break"
@@ -28,7 +29,8 @@
     "language": {
       "sp": "español",
       "en": "inglés",
-      "nb": "noruego bokmål"
+      "nb": "noruego bokmål",
+      "de": "alemán"
     },
     "output_format": {
       "lines": "separados por salto de línea"
@@ -37,6 +39,27 @@
       "short": "entre 1 y 5",
       "medium": "entre 5 y 15",
       "long": "más de 15"
+    }
+  },
+    "de": {
+    "task": {
+      "generate": "Ich möchte, dass du spezifische Beispiele für wirtschaftliche Aktivitäten generierst, die zu einer gegebenen Beschreibung passen.",
+      "process": "Ich möchte, dass du alle spezifischen Beispiele für wirtschaftliche Aktivitäten aus einer gegebenen Beschreibung extrahierst.",
+      "combine": "Ich werde dir eine Liste von Wörtern und eine Beschreibung wirtschaftlicher Aktivitäten auf Norwegisch (Bokmål) geben. Ich möchte, dass du neue Beispiele für wirtschaftliche Aktivitäten erstellst, indem du die verschiedenen Wörter kombinierst. Die Beispiele müssen zur Beschreibung passen."
+    },
+    "language": {
+      "sp": "Spanisch",
+      "en": "Englisch",
+      "nb": "Norwegisch (Bokmål)",
+      "de": "Deutsch"
+    },
+    "output_format": {
+      "lines": "durch Zeilenumbruch getrennt"
+    },
+    "len_constraint": {
+      "short": "zwischen 1 und 5",
+      "medium": "zwischen 5 und 15",
+      "long": "mehr als 15"
     }
   }
 }
