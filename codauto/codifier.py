@@ -124,16 +124,10 @@ class Codifier(ABC):
         self.model = None
         if corres_df is not None:
             self.correspondences = self.get_correspondences(corres_df)
-        else:
-            self.correspondences = None
         if train_df is not None:
             self.train_df = self.get_train_dataset(train_df, 'train_df')
-        else:
-            self.train_df = None
         if test_df is not None:
             self.test_df = self.get_test_dataset(test_df, 'test_df')
-        else:
-            self.test_df = None
 
     def get_correspondences(self, correspondences_df):
         """
