@@ -5,3 +5,5 @@ __pycache__/
 codauto/__pycache__/
 codauto/.ipynb_checkpoints/
 pruebas_codifier.py
+*.venv
+.idea/
