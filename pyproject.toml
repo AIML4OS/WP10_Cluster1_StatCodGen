@@ -1,0 +1,68 @@
+[build-system]
+requires = [
+    "setuptools>=61", "wheel"
+ ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "statcodgen"
+version = "1.1.0"
+description = "Library for training an autoencoder and generate synt data."
+
+readme = {file = "README.md", content-type = "text/markdown"}
+
+authors = [
+    {name = "Methodology unit (INE)", email = "git.metodologia@ine.es"},
+]
+
+license = {text = "EUPL European Public License"}
+
+dependencies = [
+    'pandas',
+    'numpy==1.26.2',
+    'SPARQLWrapper',
+    'fasttext-wheel',
+    'openpyxl',
+    'matplotlib',
+    'scikit-learn',
+    'nltk',
+    'xlrd',
+    'request'
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+
+
+[project.optional-dependencies]
+bert = [
+    'transformers==4.37.1',
+    'tokenizers==0.15.1',
+    'datasets==2.16.1',
+    'torch',
+    'accelerate==0.25.0',
+    'huggingface_hub==0.20.3',
+    'fsspec==2023.10.0'
+]
+api = ["groq", "httpx"]
+tests = ["pytest"]
+
+
+
+[project.urls]
+Homepage = 'https://gitlab.ine.es/prod-estadistica/metodologia/clasificaciones/statcodgen'
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["statcodgen*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+markers = [
+    "unit: fast unit test without I/O",
+    "integration:  test with I/O",
+    "slow: slow test (exclude with -m 'not slow')",
+]
