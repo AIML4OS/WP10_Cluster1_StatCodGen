@@ -4,10 +4,10 @@ Created on Wed Nov 19 13:25:01 2025
 
 @author: U853768
 """
-from process_notes import ProcessNACENB
+from codauto.process_notes import ProcessNACENB
 import pandas as pd
 import os
-from synt_data_maker import OnyxiaSyntDataGenerator
+from codauto.synt_data_maker import OnyxiaSyntDataGenerator
 
 notes_n = "notas_explicativas_noruego.csv"
 train_n = "train_norwaydata.csv"

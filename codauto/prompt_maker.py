@@ -73,7 +73,7 @@ class PromptMaker(ABC):
     ):
         self.set_logger()
         if root is None:
-            self.root = os.path.abspath('.')
+            self.root = os.path.abspath('../synt_data_maker')
         else:
             self.root = root
         self.prompt_template = prompt_template
