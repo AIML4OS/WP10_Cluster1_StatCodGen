@@ -1,5 +1,5 @@
 
-from codauto.synt_data_maker import SyntDataGenerator
+from statcodgen.synt_data_maker import SyntDataGenerator
 import requests
 
 class OnyxiaSyntDataGenerator(SyntDataGenerator):

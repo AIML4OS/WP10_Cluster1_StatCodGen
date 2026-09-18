@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "statcodgen"
-version = "1.1.0"
+version = "1.0.0"
 description = "Library for training an autoencoder and generate synt data."
 
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -27,7 +27,8 @@ dependencies = [
     'scikit-learn',
     'nltk',
     'xlrd',
-    'request'
+    'request',
+    'httpx'
 ]
 
 classifiers = [

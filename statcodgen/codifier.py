@@ -15,10 +15,10 @@ import warnings
 from tqdm import tqdm
 from abc import ABC, abstractmethod
 
-from codauto.utils import truncate_colormap
-from codauto.utils import preprocess_text
-from codauto.utils import forward_pseudolog_transform
-from codauto.utils import reverse_pseudolog_transform
+from my_utils import truncate_colormap
+from my_utils import preprocess_text
+from my_utils import forward_pseudolog_transform
+from my_utils import reverse_pseudolog_transform
 
 
 class Codifier(ABC):

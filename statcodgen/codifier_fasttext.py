@@ -9,8 +9,8 @@ import fasttext as ft
 from time import time
 import os
 
-from codauto.utils import preprocess_text
-from codauto.codifier import Codifier
+from my_utils import preprocess_text
+from codifier import Codifier
 
 
 class CodifierFastText(Codifier):

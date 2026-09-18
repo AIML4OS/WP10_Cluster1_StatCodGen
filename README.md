@@ -47,8 +47,10 @@ For any standard, you must code a *Structured* child that implements its own met
 This method's input must be a code as a string, and its output must be an integer indicating the hierarchical level of the code, with 0 indicating the highest level.
 
 An example for CNAE-2025.
+
 ```python
-from codauto import Structured
+from statcodgen import Structured
+
 
 class StructuredCNAE(Structured):
     """
@@ -73,7 +75,8 @@ class StructuredCNAE(Structured):
             Hierarchical level based on code length minus one.
         """
         code = code.replace('.', '')
-        return len(code)-1
+        return len(code) - 1
+
 
 structurecnae25 = StructuredCNAE(
     structure_df=structure_df,
@@ -270,8 +273,9 @@ This library also has two functions for generating prompts to produce synthetic 
 
 #### Fill_prompt_synt_data
 It fills a synthetic prompt template by replacing predefined placeholders with a given title and notes. The purpose of this function is to generate prompts for requesting that LLMs directly generate samples of coded descriptions.
+
 ```python
-from codauto.prompt_maker import fill_prompt_synt_data
+from statcodgen.prompt_maker import fill_prompt_synt_data
 
 fill_prompt_synt_data(title, includes, prompt)
 ```
@@ -283,8 +287,9 @@ Parameters:
 #### Fill_prompt_aug_data
 It fills a synthetic prompt template by replacing predefined placeholders with a given title and notes. 
 The purpose of this function is to generate prompts for requesting that LLMs create dictionaries of synonyms from the keywords in the title, and then generate samples of coded descriptions by replacing the words in the title.
+
 ```python
-from codauto.prompt_maker import fill_aug_synt_data
+from statcodgen.prompt_maker import fill_aug_synt_data
 
 fill_prompt_aug_data(title, includes, language, prompt)
 ```
