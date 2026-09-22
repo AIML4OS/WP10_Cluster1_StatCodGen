@@ -25,9 +25,10 @@
 # See the license for specific terms.
 # ------------------------------------------------------------------------------
 
-from prompt_maker import PromptMaker
 import os
-from data_handler import read_json
+
+from statcodgen.prompt_maker import PromptMaker
+from statcodgen.data_handler import read_json
 
 
 class PromptSyntDataMaker(PromptMaker):

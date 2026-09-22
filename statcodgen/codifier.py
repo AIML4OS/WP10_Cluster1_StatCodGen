@@ -1,4 +1,29 @@
 # -*- coding: utf-8 -*-
+# ------------------------------------------------------------------------------
+# Copyright (C) [2025] Instituto Nacional de Estadística
+#
+# Este archivo forma parte del proyecto statcodgen.
+#
+# Licenciado bajo la Licencia Pública de la Unión Europea (EUPL) v.1.2.
+# Puede obtener una copia de la licencia en la raiz de este proyecto o en:
+# https://eupl.eu/1.2/es/
+#
+# A menos que se indique lo contrario, este software se distribuye
+# "TAL CUAL", SIN GARANTÍAS NI CONDICIONES DE NINGÚN TIPO.
+# Consulte la licencia para conocer los términos específicos.
+# ------------------------------------------------------------------------------
+# Copyright (C) [2025] National Institute of Statistics
+#
+# This file is part of the statcodgen project.
+#
+# Licensed under the European Union Public License (EUPL) v.1.2.
+# You can obtain a copy of the license at the root of this project or at:
+# https://eupl.eu/1.2/es/
+#
+# Unless otherwise indicated, this software is distributed
+# "AS IS", WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
+# See the license for specific terms.
+# ------------------------------------------------------------------------------
 """
 Created on Mon Jun 24 11:02:31 2024
 
@@ -15,101 +40,65 @@ import warnings
 from tqdm import tqdm
 from abc import ABC, abstractmethod
 
-from my_utils import truncate_colormap
-from my_utils import preprocess_text
-from my_utils import forward_pseudolog_transform
-from my_utils import reverse_pseudolog_transform
+from statcodgen.my_utils import truncate_colormap
+from statcodgen.my_utils import forward_pseudolog_transform
+from statcodgen.my_utils import reverse_pseudolog_transform
 
 
 class Codifier(ABC):
     """
     Abstract base class for hierarchical codifiers.
 
-    This class handles the preprocessing, cleaning, and validation of
+    This class handles preprocessing, cleaning, and validation of
     training and testing datasets for hierarchical classification tasks.
-    It also manages correspondences between previous and new classification
-    codes and provides methods for predictions and evaluation.
+    It also manages correspondences between old and new classification
+    codes and provides methods for predictions, evaluation, and metrics.
 
-    Attributes:
-        root_path (str): Path to store temporary files and models.
-        logger (logging.Logger): Logger for the instance.
-        min_lenght_texts (int): Minimum length of valid descriptions.
-        structure: Object containing the hierarchical structure of codes.
-        model: Placeholder for the trained model.
-        correspondences: Dictionary mapping old codes to new codes.
-        train_df (pd.DataFrame): Cleaned training dataset.
-        test_df (pd.DataFrame): Cleaned testing dataset with hierarchical labels.
-        language (str): The language of your textual data.
-        preprocess (bool): Specifies whether the text from the training, test, or prediction set should be preprocessed.
+    Attributes
+    ----------
+    root_path : str
+        Path to store models and temporary files.
+    logger : logging.Logger
+        Logger configured for the codifier instance.
+    min_lenght_texts : int
+        Minimum number of characters required for a description to be valid.
+    structure : object
+        An object defining the hierarchical structure of codes.
+        Must expose `level_l` (list of levels) and `reversed_hierarchy`
+        (mapping from leaf codes to hierarchical paths).
+    model : object or None
+        Trained model instance. Initialized as None.
+    correspondences : dict or None
+        Mapping of old codes to new codes across hierarchy levels,
+        if provided via `corres_df`.
+    train_df : pandas.DataFrame or None
+        Cleaned and validated training dataset.
+    test_df : pandas.DataFrame or None
+        Cleaned and validated testing dataset with hierarchical labels.
+    preprocess : callable function or None 
+        If a text preprocessing function is given, applies such function.
+        If None, does not apply text preprocessing. 
+        Default Value: None.         
 
-    Methods:
-        get_correspondences(corres_df):
-            Converts a correspondence DataFrame into a hierarchical dictionary.
-
-        get_code(n):
-            Standardizes numeric codes to 4-character strings and checks validity.
-
-        clean_data(data_df):
-            Cleans and preprocesses the dataset codes and descriptions.
-
-        load_data(data_df, data_name='data_df'):
-            Loads and cleans a dataset, reporting bad or missing codes/descriptions.
-
-        check_codes(data_df, name, show_codes=True):
-            Checks which codes from the hierarchy are missing in the dataset.
-
-        get_train_dataset(train_dataset, name):
-            Cleans and validates the training dataset.
-
-        get_test_dataset(test_dataset, name):
-            Cleans and validates the testing dataset and generates hierarchical ground-truth labels.
-
-        train(**kwargs):
-            Abstract method to train the model on the training dataset.
-
-        save(name):
-            Abstract method to save the trained model.
-
-        load(name):
-            Abstract method to load a previously trained model.
-
-        get_pred_for_batch(samples, idxs, clean_samples=False):
-            Abstract method to generate predictions for a batch of samples.
-
-        get_top_n_predictions(samples, idxs, n_classes=5, clean_samples=False):
-            Returns the top N predicted labels with confidences for a batch.
-
-        get_preds_test_set(test_set, n_classes):
-            Generates top-N predictions for the entire test dataset.
-
-        get_precision_vs_recall_multi_conf(test_set, version, n_classes, source='all'):
-            Computes precision, recall, and average predicted classes across confidence thresholds.
-
-        plot_evaluate_curve(test_set, source='all', version='09'):
-            Plots precision-recall curves for the test set for different thresholds.
-
-        evaluate(source='all', get_curve=True, simplify=True, version='model'):
-            Evaluates the model on the test set and returns metrics and/or classification report.
-
-        predict(desc_l, mode, hierarchical_level, threshold, original_code_l=None, identifier_l=None):
-            Predicts codes for a list of descriptions, optionally considering direct recoding correspondences.
+    Notes
+    -----
+    - This is an abstract base class. Subclasses must implement
+      `train`, `save`, `load`, and `get_pred_for_batch`.
     """
 
-    def __init__(self,
-                 structure_instance,
-                 root_path,
-                 train_df=None,
-                 test_df=None,
-                 corres_df=None,
-                 min_lenght_texts=3,
-                 language='es',
-                 preprocess = True
-                 ):
+    def __init__(
+            self,
+            structure_instance,
+            root_path,
+            train_df=None,
+            test_df=None,
+            corres_df=None,
+            min_lenght_texts=3,
+            preprocess = None
+    ):
         self.root_path = root_path
-        self.language = language
-        self.preprocess = preprocess
         os.makedirs(self.root_path, exist_ok=True)
-        self.logger = logging.getLogger(f'CNAECodifier.{id(self)}')
+        self.logger = logging.getLogger(f'Codifier.{id(self)}')
         self.logger.setLevel(logging.INFO)
         formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s'
@@ -122,81 +111,79 @@ class Codifier(ABC):
         self.min_lenght_texts = min_lenght_texts
         self.structure = structure_instance
         self.model = None
+        self.preprocess = preprocess
+        self.correspondences = None
+        self.train_df = None
+        self.test_df = None
         if corres_df is not None:
             self.correspondences = self.get_correspondences(corres_df)
         if train_df is not None:
             self.train_df = self.get_train_dataset(train_df, 'train_df')
         if test_df is not None:
             self.test_df = self.get_test_dataset(test_df, 'test_df')
-
+    
     def get_correspondences(self, correspondences_df):
         """
-        Processes a DataFrame containing code correspondences and organizes them
-        by hierarchical level.
+        Convert a correspondence DataFrame into a hierarchical mapping.
 
         Parameters
         ----------
         correspondences_df : pandas.DataFrame
-            A DataFrame with exactly 3 columns:
-            [0] previous classification code (old_code)
-            [1] new classification code (new_code)
-            [2] hierarchical level of the correspondence (level)
+            A DataFrame with 3 columns:
+            [0] old_code : str
+                Previous classification code.
+            [1] new_code : str
+                Target classification code.
+            [2] level : int
+                Hierarchical level of the correspondence. It must be the new
+                code's (new_code) level.'
 
         Returns
         -------
         pandas.Series
-            A Series grouped by hierarchical level. Each element is a mapping
-            from old codes to a set of corresponding new codes at that level.
+            A Series indexed by hierarchy level. Each element is a mapping
+            from old codes to sets of new codes at that level.
 
         Raises
         ------
         ValueError
-            If the input DataFrame does not have exactly 3 columns.
+            If the DataFrame does not have exactly 3 columns.
 
         Notes
         -----
-        - The method cleans the codes by removing periods.
-        - The hierarchical levels are converted to integers.
-        - The output allows easy lookup of how old codes map to new codes
-          for each level of the hierarchy.
+        - Periods in codes are removed before processing.
+        - Useful for direct recoding of legacy classification systems.
         """
         if correspondences_df.shape[1] != 3:
             raise ValueError(
-                "corres_df must have 3 columns: [0] previous classification code, [1] new classification code, [2]  hierarchical level of the correspondence")
+                "corres_df must have 3 columns: [0] previous classification code, [1] new classification code, [2]  hierarchical level of the correspondence"
+            )
         correspondences_df.columns = ['old_code', 'new_code', 'level']
         correspondences_df = correspondences_df.map(
             lambda v: v.replace('.', '')
         )
         correspondences_df['level'] = correspondences_df['level'].apply(int)
-        correspondences = correspondences_df.groupby('level').apply(
-            lambda df: df.groupby('old_code').new_code.apply(set)
-        )
-
+        correspondences = correspondences_df.groupby(['level', 'old_code'])['new_code'].apply(set)
         return correspondences
 
     def get_code(self, code):
         """
-        Returns the code if it exists in the reversed hierarchy; otherwise returns NaN.
-
-        This method checks whether a given code is present in the object's
-        reversed hierarchy (`reversed_hierarchy`). If the code exists, it is
-        returned as-is; if not, `np.nan` is returned.
+        Validate and standardize a classification code.
 
         Parameters
         ----------
         code : str
-            The code to check in the reversed hierarchy.
+            Input code to check against the hierarchy.
 
         Returns
         -------
         str or float
-            - `str`: the same code if it exists in `reversed_hierarchy`.
-            - `np.nan`: if the code is not found.
+            - The same code if it exists in `self.structure.reversed_hierarchy`
+            - np.nan if the code is not found.
 
         Notes
         -----
-        - `self.structure.reversed_hierarchy` is expected to be a dictionary containing all valid codes.
-        - This method is useful for validating codes before processing or adding them to normalized predictions.
+        Ensures only valid codes are retained before predictions or evaluation.
         """
         if code in self.structure.reversed_hierarchy.keys():
             return code
@@ -204,28 +191,30 @@ class Codifier(ABC):
 
     def clean_data(self, data_df):
         """
-        Cleans and preprocesses a dataset by standardizing codes and text descriptions.
+        Clean and preprocess a dataset by normalizing codes and descriptions.
 
         Parameters
         ----------
         data_df : pandas.DataFrame
-            The input dataframe with at least two columns:
+            Dataset with at least two columns:
             - Column 0: code
-            - Column 1: text description
+            - Column 1: description
 
         Returns
         -------
         pandas.DataFrame
-            The cleaned dataframe with:
-            - Standardized 4-character codes in the first column.
-            - Preprocessed text descriptions in the second column.
-            - Texts shorter than the minimum length replaced with NaN.
+            Cleaned dataset where:
+            - Codes are standardized and validated.
+            - Descriptions are preprocessed when a preprocessing function is provided.
+            - Descriptions shorter than `min_lenght_texts` are replaced with NaN.
 
         Processing Steps
         ----------------
         1. Extracts the first two columns of the dataframe.
-        2. Standardizes the codes in the first column using droping dots and get_code.
-        3. Applies `preprocess_text` to clean the text in the second column.
+        2. Standardizes the codes in the first column using droping dots and
+        get_code.
+        3. Applies optional text preprocessing to clean the text in the second
+        column.
         4. Replaces text entries that are shorter than `min_lenght_texts`
            with NaN.
         """
@@ -235,29 +224,30 @@ class Codifier(ABC):
         data_df[col_n_0] = data_df[col_n_0].apply(
             lambda n: self.get_code(str(n).replace('.', ''))
         )
-        if self.preprocess:
-            data_df[col_n_1] = data_df[col_n_1].apply(preprocess_text, args=(self.language,))
-            data_df[col_n_1] = data_df[col_n_1].apply(
+        if self.preprocess is not None:
+            data_df[col_n_1] = data_df[col_n_1].apply(self.preprocess)
+        
+        data_df[col_n_1] = data_df[col_n_1].apply(
                 lambda desc: np.nan if len(desc) <= self.min_lenght_texts else desc
-            )
+        )
         return data_df
 
     def load_data(self, data_df, data_name='data_df'):
         """
-        Loads and preprocesses a dataset, cleaning it and removing invalid entries.
+        Load, clean, and validate a dataset.
 
         Parameters
         ----------
         data_df : pandas.DataFrame
-            Input dataframe to be cleaned and loaded.
+            Raw dataset to load.
         data_name : str, optional
-            Name of the dataset (used for logging), by default 'data_df'.
+            Name used in log messages (default is 'data_df').
 
         Returns
         -------
         pandas.DataFrame
-            The cleaned dataframe with all invalid codes or descriptions removed,
-            indices reset, and ready for further processing.
+            Cleaned dataset with invalid codes and short descriptions removed,
+            and index reset.
 
         Process Overview
         ----------------
@@ -268,7 +258,8 @@ class Codifier(ABC):
            - Standardizes codes.
            - Preprocesses text descriptions.
            - Replaces too-short descriptions with NaN.
-        5. Counts and logs the number of invalid codes and descriptions (NaN values).
+        5. Counts and logs the number of invalid codes and descriptions
+        (NaN values).
         6. Drops all rows with NaN values.
         7. Resets the dataframe index.
         8. Logs the number of entries after pruning.
@@ -291,28 +282,30 @@ class Codifier(ABC):
 
     def check_codes(self, data_df, name, show_codes=True):
         """
-        Checks which hierarchical codes are missing in a given dataset.
+        Check which hierarchical codes are missing in a dataset.
 
         Parameters
         ----------
         data_df : pandas.DataFrame
-            The dataset to check. Assumes that the first column contains the codes.
+            Dataset to check. First column is assumed to contain codes.
         name : str
-            Name of the dataset (used for logging purposes).
+            Name used in logging.
         show_codes : bool, optional
-            Whether to log the list of unrepresented codes, by default True.
+            If True, logs the list of missing codes (default=True).
 
         Returns
         -------
         int
-            The number of codes in the hierarchy that are not represented in the dataset.
+            Number of codes defined in the hierarchy that are not
+            represented in the dataset.
 
         Process Overview
         ----------------
         1. Extracts the unique codes present in the dataset.
         2. Retrieves all codes defined in the hierarchical structure.
         3. Computes the set difference to find unrepresented codes.
-        4. Logs the number of missing codes and optionally the list of these codes.
+        4. Logs the number of missing codes and optionally the list of these
+        codes.
         5. Returns the count of unrepresented codes.
         """
         codes_set = set(data_df.iloc[:, 0].unique())
@@ -329,34 +322,39 @@ class Codifier(ABC):
 
     def get_train_dataset(self, train_dataset, name):
         """
-        Prepares and validates the training dataset for the codifier model.
+        Clean and validate the training dataset.
 
         Parameters
         ----------
         train_dataset : pandas.DataFrame
-            The raw training dataset. Expected to have at least two columns:
-            [0] code, [1] description. Extra columns will be ignored.
+            Raw training dataset with at least 2 columns:
+            [0] code, [1] description.
         name : str
-            Name of the dataset, used for logging and warnings.
+            Name used in logging.
 
         Returns
         -------
         pandas.DataFrame
-            A cleaned and validated training dataset containing only valid codes
-            and descriptions.
+            Cleaned training dataset with only valid codes and descriptions.
 
         Process Overview
         ----------------
-        1. Checks that the dataset has at least 2 columns. Raises an error otherwise.
-        2. Warns if the dataset has more than 2 columns, but only uses the first two.
-        3. Cleans the dataset using `load_data` (removes invalid codes/descriptions).
+        1. Checks that the dataset has at least 2 columns. Raises an error
+        otherwise.
+        2. Warns if the dataset has more than 2 columns, but only uses the
+        first two.
+        3. Cleans the dataset using `load_data`
+        (removes invalid codes/descriptions).
         4. Checks for unrepresented codes using `check_codes`.
-        5. Issues a warning if some codes in the hierarchy are missing from the dataset.
+        5. Issues a warning if some codes in the hierarchy are missing from the
+        dataset.
         6. Returns the cleaned dataset ready for training.
         """
 
         if train_dataset.shape[1] < 2:
-            raise ValueError("train_df must have at least 2 columns: [0] code, [1] description")
+            raise ValueError(
+                "train_df must have at least 2 columns: [0] code, [1] description"
+            )
         if train_dataset.shape[1] > 2:
             warnings.warn(
                 "train_dataset has more than 2 columns. Only columns 0 (expected: code) and 1 (expected: description) will be used."
@@ -371,40 +369,52 @@ class Codifier(ABC):
 
     def get_test_dataset(self, test_dataset, name):
         """
-        Prepares and validates the test dataset for hierarchical evaluation.
+        Clean and validate the test dataset, and generate hierarchical ground
+        truth.
 
         Parameters
         ----------
         test_dataset : pandas.DataFrame
-            Raw test dataset. Must have exactly three columns:
-            [0] code, [1] description, [2] source.
+            Raw test dataset with 2 obligatory columns and an aditional optional one containing the source:
+            [0] code, [1] description, (optional:) [2] source.
         name : str
-            Name of the dataset, used for logging and warnings.
+            Name used in logging.
 
         Returns
         -------
         pandas.DataFrame
-            Processed test dataset containing:
-            - 'desc': cleaned description text.
-            - 'source': source of the sample.
-            - 'gt_<level>': ground-truth code at each hierarchical level.
+            Processed dataset with columns:
+            - 'desc': preprocessed description text.
+            - 'source': sample source (when source is provided).
+            - 'gt_<level>': ground-truth codes for each hierarchical level.
 
         Method Details
         --------------
-        1. Validates that the input DataFrame has exactly 3 columns; raises ValueError if not.
-        2. Cleans the dataset using `load_data` to handle invalid or too short codes/descriptions.
+        1. Validates that the input DataFrame has 2 or 3 columns; raises
+           ValueError if not.
+        2. Cleans the dataset using `load_data` to handle invalid or too short
+           codes/descriptions.
         3. Renames columns to standard format:
            - Top-level code: 'gt_<highest_level>'
            - Description: 'desc'
            - Source: 'source'
-        4. Expands the top-level code into ground-truth codes for all hierarchical levels
-           using `self.structure.reversed_hierarchy`.
+        4. Expands the top-level code into ground-truth codes for all
+           hierarchical levels using `self.structure.reversed_hierarchy`.
         5. Returns a DataFrame ready for hierarchical evaluation.
         """
-        if test_dataset.shape[1] != 3:
-            raise ValueError("test_df must have 3 columns: [0] code, [1] description, [2] source")
+        if test_dataset.shape[1] not in [2, 3]:
+            raise ValueError(
+                "test_df must have 2 or 3 columns: [0] code, [1] description, (optional:) [2] source"
+            )
         input_df = self.load_data(test_dataset, name)
-        input_df.columns = [f'gt_{self.structure.level_l[-1]}', 'desc', 'source']
+        if input_df.shape[1] == 3:
+            input_df.columns = [
+            f'gt_{self.structure.level_l[-1]}', 'desc', 'source'
+            ]
+        else:
+            input_df.columns = [
+            f'gt_{self.structure.level_l[-1]}', 'desc'
+            ]
         ground_truth = f'gt_{self.structure.level_l[-1]}'
         for lvl in self.structure.level_l:
             input_df[f'gt_{lvl}'] = input_df[ground_truth].apply(
@@ -426,9 +436,12 @@ class Codifier(ABC):
 
         Notes
         -----
-        This method must be implemented in any subclass of Codifier. It should handle
-        the actual training procedure of the underlying model, storing the trained model
-        in `self.model`.
+        This method must be implemented in any subclass of Codifier. It should
+        handle the actual training procedure of the underlying model, storing
+        the trained model in `self.model`.
+
+        Native filtering requires the training structure to include
+        garbage classes (``ensure_garbage_class=True``).
         """
 
     @abstractmethod
@@ -443,9 +456,9 @@ class Codifier(ABC):
 
         Notes
         -----
-        This method must be implemented in any subclass of Codifier. It should handle
-        serialization of the trained model (`self.model`) so that it can be reloaded
-        later using the `load` method.
+        This method must be implemented in any subclass of Codifier. It should
+        handle serialization of the trained model (`self.model`) so that it can
+        be reloaded later using the `load` method.
         """
 
     @abstractmethod
@@ -456,43 +469,139 @@ class Codifier(ABC):
         Parameters
         ----------
         name : str
-            The filename (or path) from which the trained model should be loaded.
+            The filename (or path) from which the trained model should be
+            loaded.
 
         Notes
         -----
-        This method must be implemented in any subclass of Codifier. It should handle
-        deserialization of the model and assign it to `self.model` so that the codifier
-        can be used for predictions.
+        This method must be implemented in any subclass of Codifier. It should
+        handle deserialization of the model and assign it to `self.model` so
+        that the codifier can be used for predictions.
         """
 
     @abstractmethod
-    def get_pred_for_batch(self, samples, idxs, clean_samples=False):
+    def get_pred_for_batch(self, samples):
         """
-        Abstract method to generate predictions for a batch of input samples.
+        Generate predictions for a batch of input samples.
 
         Parameters
         ----------
         samples : list of str
-            A list of text descriptions to be predicted/classified.
+            Text descriptions to classify.
+
+        Returns
+        -------
+        list of tuple
+            Each element corresponds to one input sample and contains:
+            - labels (list of str): predicted labels.
+            - confidences (list of float): associated confidence scores.
+
+        Notes
+        -----
+        Must be implemented by leaves classes.
+        The output format is later transformed into hierarchical predictions
+        by `take_preds_bottom_up`.
+        """
+
+    def take_preds_bottom_up(self, samples, idxs, clean_samples=False):
+        """
+        Generate hierarchical predictions from leaf-level model outputs.
+
+        This method takes raw predictions (labels and confidences) from
+        `get_pred_for_batch` and aggregates them bottom-up through the
+        hierarchy defined in `self.structure`. Confidence scores from
+        leaf labels are propagated and summed to compute scores at
+        higher levels.
+
+        Parameters
+        ----------
+        samples : list of str
+            Input text samples to classify.
         idxs : list of int
-            A list of indices corresponding to each sample in the batch.
+            Identifiers corresponding to each input sample.
         clean_samples : bool, optional (default=False)
-            Whether to apply preprocessing/cleaning to the samples before prediction.
+            If True, applies text preprocessing to the samples before
+            prediction.
 
         Returns
         -------
         dict
-            A dictionary where keys are indices from `idxs` and values are dictionaries
-            containing predicted labels and their associated confidence scores for each
-            hierarchical level.
+            A dictionary mapping each element in `idxs` to its hierarchical
+            predictions. For each sample, the value is a dictionary with:
+            - 'label_<level>' : list of str
+                Predicted labels at hierarchy level `<level>`, ordered
+                by confidence (descending).
+            - 'conf_<level>' : list of float
+                Confidence scores for the corresponding labels.
 
         Notes
         -----
-        Subclasses must implement this method to perform the actual batch prediction.
-        The output format should match what `get_top_n_predictions` expects for further processing.
-        """
+        - Predictions at the deepest level (`level_l[-1]`) are taken
+          directly from `get_pred_for_batch`.
+        - For higher levels, scores are aggregated by summing the
+          confidences of their descendant labels.
+        - If the hierarchy has only one level, only leaf predictions
+          are returned.
+        - The output is later consumed by methods such as
+          `get_top_n_predictions` and `predict`.
 
-    def get_top_n_predictions(self, samples, idxs, n_classes=5, clean_samples=False):
+        Example
+        -------
+         >>> samples = ["The new smartphone has an excellent camera.",
+         ...            "I love hiking in the mountains."]
+         >>> idxs = [101, 102]
+         >>> preds = obj.take_preds_bottom_up(samples, idxs)
+         >>> preds[101]['label_level_2']
+         ['Electronics', 'Other']
+         >>> preds[101]['conf_level_2']
+         [0.85, 0.15]
+         >>> preds[101]['label_level_1']
+         ['Products', 'Misc']
+         >>> preds[101]['conf_level_1']
+         [0.85, 0.15]
+        """
+        pred_dict = {}
+        if clean_samples:
+            if self.preprocess is not None:
+                samples = [
+                    self.preprocess(sample) for sample in samples
+                ]
+        preds_confs = self.get_pred_for_batch(
+            samples=samples
+        )
+        for pred_conf, idx in zip(preds_confs, idxs):
+            hierarchical_pred = {}
+            labels = pred_conf[0]
+            conf = pred_conf[1]
+            hierarchical_pred[f'label_{self.structure.level_l[-1]}'] = labels
+            hierarchical_pred[f'conf_{self.structure.level_l[-1]}'] = conf
+            if len(self.structure.level_l) == 1:
+                pred_dict[idx] = hierarchical_pred
+                next
+            for lvl in self.structure.level_l[:-1]:
+                lvl_labels = []
+                lvl_probs = []
+                parent_map = {}
+                for lbl, prob in zip(labels, conf):
+                    parent_lbl = self.structure.reversed_hierarchy[lbl][lvl]
+                    parent_map.setdefault(parent_lbl, 0)
+                    parent_map[parent_lbl] += prob
+                sorted_pairs = sorted(
+                    parent_map.items(),
+                    key=lambda x: x[1],
+                    reverse=True
+                )
+                for parent_lbl, total_prob in sorted_pairs:
+                    lvl_labels.append(parent_lbl)
+                    lvl_probs.append(total_prob)
+                hierarchical_pred[f'label_{lvl}'] = lvl_labels
+                hierarchical_pred[f'conf_{lvl}'] = lvl_probs
+            pred_dict[idx] = hierarchical_pred
+        return pred_dict
+
+    def get_top_n_predictions(
+            self, samples, idxs, n_classes=5, clean_samples=False
+    ):
         """
         Generate the top-N predictions for a batch of input samples.
 
@@ -505,25 +614,29 @@ class Codifier(ABC):
         n_classes : int, optional (default=5)
             The number of top predictions to return per hierarchical level.
         clean_samples : bool, optional (default=False)
-            Whether to apply preprocessing/cleaning to the samples before prediction.
+            Whether to apply preprocessing/cleaning to the samples before
+            prediction.
 
         Returns
         -------
         dict
-            A dictionary where each key is an index from `idxs`, and each value is another
-            dictionary containing the top-N predicted labels and their corresponding confidence
-            scores for each hierarchical level. Keys follow the format:
+            A dictionary where each key is an index from `idxs`, and each value
+            is another dictionary containing the top-N predicted labels and
+            their corresponding confidence scores for each hierarchical level.
+            Keys follow the format:
             - 'label_<level>': list of top-N predicted labels
             - 'conf_<level>': list of corresponding confidence scores
 
         Notes
         -----
-        This method calls `get_pred_for_batch` to obtain raw predictions, then filters
-        them to only keep the top-N predictions per level. It is useful for scenarios
-        where only the most likely predictions are needed, such as displaying suggestions
-        or computing metrics.
+        This method calls `take_preds_bottom_up` to obtain raw predictions,
+        then filters them to only keep the top-N predictions per level. It is
+        useful for scenarios where only the most likely predictions are needed,
+        such as displaying suggestions or computing metrics.
         """
-        hierarchical_preds = self.get_pred_for_batch(samples, idxs, clean_samples)
+        hierarchical_preds = self.take_preds_bottom_up(
+            samples, idxs, clean_samples
+        )
         top_n_predictions = {}
         for idx, pred in hierarchical_preds.items():
             top_n_pred = {}
@@ -537,33 +650,40 @@ class Codifier(ABC):
 
     def get_preds_test_set(self, test_set, n_classes):
         """
-         Generate predictions for an entire test dataset using the top-N prediction strategy.
+         Generate predictions for an entire test dataset using the top-N
+         prediction strategy.
 
          Parameters
          ----------
          test_set : pandas.DataFrame
-             A DataFrame containing the test samples. Must include a column 'desc' with text descriptions.
+             A DataFrame containing the test samples. Must include a column
+             'desc' with text descriptions.
          n_classes : int
-             The number of top predictions to return for each sample and hierarchical level.
+             The number of top predictions to return for each sample and
+             hierarchical level.
 
          Returns
          -------
          pandas.DataFrame
-             A DataFrame where each row corresponds to a sample from `test_set`, indexed by
-             the original DataFrame index. Each column contains the top-N predicted labels and
-             confidence scores per hierarchical level.
+             A DataFrame where each row corresponds to a sample from
+             `test_set`, indexed by the original DataFrame index. Each column
+             contains the top-N predicted labels and confidence scores per
+             hierarchical level.
 
          Notes
          -----
          - Iterates over each row of the test dataset.
          - Calls `get_top_n_predictions` for each description individually.
-         - Collects predictions in a dictionary and converts it to a DataFrame for easier analysis
-           and merging with ground truth labels.
-         - Useful for evaluating the model across the full test dataset or generating prediction reports.
+         - Collects predictions in a dictionary and converts it to a DataFrame
+           for easier analysis and merging with ground truth labels.
+         - Useful for evaluating the model across the full test dataset or
+           generating prediction reports.
          """
         preds_test = dict()
         for row_i, row in tqdm(
-                test_set.iterrows(), total=len(test_set), desc=f"Predicting test_set for {n_classes} classes"
+            test_set.iterrows(),
+            total=len(test_set),
+            desc=f"Predicting test_set for {n_classes} classes"
         ):
             sample_pred = self.get_top_n_predictions(
                 [row['desc']], [row_i], n_classes
@@ -571,131 +691,145 @@ class Codifier(ABC):
             preds_test[row_i] = sample_pred[row_i]
         return pd.DataFrame.from_dict(preds_test, orient='index')
 
-    def get_precision_vs_recall_multi_conf(
-            self, test_set, version, n_classes, source='all'
-            ):
+    def get_precision_vs_recall_multi_conf(self, df_gt, n_classes):
         """
-        Compute precision, recall, and average number of predicted classes across multiple confidence thresholds
-        for each hierarchical level.
+        Compute precision, recall, and average number of predicted classes
+        across multiple confidence thresholds for each hierarchical level.
 
         Parameters
         ----------
-        test_set : pandas.DataFrame
-            The test dataset containing ground truth labels and descriptions.
-        version : str
-            A string identifier for the model version or evaluation run (used for logging or plotting purposes).
+        df_gt : pandas.DataFrame
+            Test dataset containing, per hierarchical level, columns
+            'label_{lvl}' (predicted labels ordered by confidence),
+            'conf_{lvl}' (their associated confidence scores), and
+            'gt_{lvl}' (ground truth label).
         n_classes : int
-            The number of top predictions to consider for evaluation.
-        source : str, default 'all'
-            If not 'all', filters the test set to include only rows from this source.
+            Maximum number of top predictions to consider per level
+            (capped automatically if a given level has fewer available
+            classes; this cap is computed independently per level).
 
         Returns
         -------
         dict
-            A dictionary where keys are hierarchical levels and values are DataFrames indexed by confidence
-            thresholds. Each DataFrame contains the following columns:
-                - 'precision': Fraction of predictions above the threshold that are correct.
-                - 'recall': Fraction of samples with at least one prediction above the threshold.
-                - 'mean_classes': Average number of predicted classes above the threshold.
+            Dictionary keyed by hierarchical level, each value a DataFrame
+            indexed by confidence threshold with columns:
+                - 'precision': Fraction of predictions above the threshold
+                  that are correct.
+                - 'recall': Fraction of samples with at least one prediction
+                  above the threshold (coverage).
+                - 'mean_classes': Average number of predicted classes above
+                  the threshold.
 
         Notes
         -----
-        - Drops test samples with missing ground truth for the deepest hierarchical level.
         - Iterates through confidence thresholds from 0 to 1 with step 0.0025.
-        - Computes whether the ground truth label is present among predictions exceeding the threshold.
-        - Useful for generating precision-recall curves and analyzing model confidence behavior
-          across hierarchical levels.
+        - For each level, precomputes the confidence associated with the
+          ground truth label (if present in the top-n_classes predictions)
+          once, then reuses it across all thresholds for efficiency.
+        - Useful for generating precision-recall curves and analyzing model
+          confidence behavior across hierarchical levels.
         """
-        column = f'gt_{self.structure.level_l[-1]}'
-        test_set.dropna(subset=[column], inplace=True)
-
-        if source != 'all':
-            if source not in test_set['source'].values:
-                raise ValueError(
-                    f'The source value {source} is not present in the source column.')
-            test_set = test_set[test_set['source'] == source]
-
-        preds_test_set = self.get_preds_test_set(test_set, n_classes)
-        df_gt = test_set.merge(
-            preds_test_set,
-            left_index=True, right_index=True,
-        )
         prec_recall_mean_classes_d = dict()
+        df_gt_n_classes = df_gt.copy()
         for lvl in self.structure.level_l:
+            n_labels = len(df_gt[f'label_{lvl}'].iloc[0])
+            n_classes_lvl = min(n_classes, n_labels)
+            df_gt_n_classes[f'label_{lvl}'] = df_gt[f'label_{lvl}'].apply(
+                lambda l: l[:n_classes_lvl]
+            )
+            df_gt_n_classes[f'conf_{lvl}'] = df_gt[f'conf_{lvl}'].apply(
+                lambda l: l[:n_classes_lvl]
+            )
+            def _conf_del_gt(row, lvl=lvl):
+                gt = str(row[f'gt_{lvl}'])
+                labels = row[f'label_{lvl}']
+                if gt in labels:
+                    return row[f'conf_{lvl}'][labels.index(gt)]
+                return np.nan
+            df_gt_n_classes[f'conf_gt_{lvl}'] = df_gt_n_classes.apply(
+                lambda row: _conf_del_gt(row), axis=1
+            )
+            conf_lists = df_gt_n_classes[f'conf_{lvl}'].apply(np.array)
             prec_recall_mean_classes = dict()
+            n_total = len(df_gt_n_classes)
             for th in np.arange(0, 1.001, 0.0025):
-                n_classes_th = []
-                for conf_list in df_gt[f'conf_{lvl}']:
-                    conf_list = np.array(conf_list)
-                    n_classes_th.append((conf_list > th).sum())
-                n_classes_mean = np.mean([x for x in n_classes_th if x > 0.1])
-                df_gt[f'gt_vs_pl_{lvl}'] = df_gt.apply(
-                    lambda row: (
-                        str(row[f'gt_{lvl}']) in row[f'label_{lvl}'] and
-                        float(row[f'conf_{lvl}'][row[f'label_{lvl}'].index(
-                            str(row[f'gt_{lvl}']))]) > th
-                    ) if str(row[f'gt_{lvl}']) in row[f'label_{lvl}'] else False,
-                    axis=1
-                )
-                df_gt_th = df_gt[df_gt[f'conf_{lvl}'].apply(
-                    lambda lista_conf: any(np.array(lista_conf) > th))]
-                n_correct_samples = df_gt_th[f'gt_vs_pl_{lvl}'].sum()
-                n_samples = len(df_gt_th)
-                recall = n_samples / len(df_gt)
-                if n_samples > 0:
-                    precision = n_correct_samples / n_samples
-                else:
-                    precision = 0
+                n_classes_th = conf_lists.apply(lambda arr: (arr > th).sum())
+                n_classes_mean = n_classes_th[n_classes_th > 0.1].mean()
+                covered_mask = conf_lists.apply(lambda arr: (arr > th).any())
+                hit_mask = df_gt_n_classes[f'conf_gt_{lvl}'] > th
+                n_samples = covered_mask.sum()
+                n_correct_samples = (covered_mask & hit_mask).sum()
+                recall = n_samples / n_total
+                precision = n_correct_samples / n_samples if n_samples > 0 else 0
                 prec_recall_mean_classes[th] = {
-                    'precision': precision, 'recall': recall, 'mean_classes': n_classes_mean}
-            prec_recall_mean_classes = pd.DataFrame.from_dict(
-                prec_recall_mean_classes, orient='index').dropna()
-            prec_recall_mean_classes_d[lvl] = prec_recall_mean_classes
-
+                    'precision': precision,
+                    'recall': recall,
+                    'mean_classes': n_classes_mean
+                }
+            prec_recall_mean_classes_d[lvl] = pd.DataFrame.from_dict(
+                prec_recall_mean_classes, orient='index'
+            ).dropna()
         return prec_recall_mean_classes_d
 
-    def plot_evaluate_curve(self, test_set, source='all', version='09'):
+    def plot_evaluate_curve(self, df_gt, source='all', version='09'):
         """
-        Plot precision vs recall curves for different numbers of predicted classes (1 and 15)
-        across all hierarchical levels, highlighting specific confidence thresholds.
+        Plot precision vs recall curves for different numbers of predicted
+        classes (1 and 15) across all hierarchical levels, highlighting
+        specific confidence thresholds.
 
         Parameters
         ----------
         test_set : pandas.DataFrame
-            The test dataset containing ground truth labels, descriptions, and source.
+            The test dataset containing ground truth labels, descriptions, and
+            source.
         source : str, default 'all'
-            If not 'all', filters the test set to include only rows from this source.
+            If not 'all', filters the test set to include only rows from this
+            source.
         version : str, default '09'
-            A string identifier for the model version or evaluation run, used in plot titles.
+            A string identifier for the model version or evaluation run, used
+            in plot titles.
 
         Notes
         -----
-        - Computes precision and recall using `get_precision_vs_recall_multi_conf` for n_classes=1 and n_classes=15.
-        - Highlights four confidence thresholds: 0.8, 0.25, 0.1, and 0.03 on the curves.
-        - Uses color and marker size to visualize the average number of predicted output codes.
-        - Applies a pseudologarithmic x-scale to improve visualization for high-recall regions.
-        - Displays a separate plot for each hierarchical level in the structure.
-        - Provides logging when levels or thresholds are missing in the computed precision-recall data.
+        - Computes precision and recall using
+          `get_precision_vs_recall_multi_conf` for n_classes=1 & n_classes=15.
+        - Highlights four confidence thresholds: 0.8, 0.25, 0.1, and 0.03 on
+          the curves.
+        - Uses color and marker size to visualize the average number of
+          predicted output codes.
+        - Applies a pseudologarithmic x-scale to improve visualization for
+          high-recall regions.
+        - Displays a separate plot for each hierarchical level in the structure
+        - Provides logging when levels or thresholds are missing in the
+          computed precision-recall data.
 
         Visualization
         -------------
-        - Scatter plot for n_classes=15 uses a color map representing the average number of output codes.
+        - Scatter plot for n_classes=15 uses a color map representing the
+          average number of output codes.
         - Scatter plot for n_classes=1 uses black markers.
-        - Blue '+' markers indicate selected confidence thresholds on the curves.
+        - Blue '+' markers indicate selected confidence thresholds on the
+          curves.
         """
         precision_vs_recall_multi_conf_15 = self.get_precision_vs_recall_multi_conf(
-            test_set, version=version, n_classes=15, source=source
+            df_gt, n_classes=15
         )
         precision_vs_recall_multi_conf_1 = self.get_precision_vs_recall_multi_conf(
-                test_set, version=version, n_classes=1, source=source
+            df_gt, n_classes=1
         )
         THRESHOLDS = (0.8, 0.25, 0.1, 0.03)
         cmap = plt.get_cmap('gist_stern')
         new_cmap = truncate_colormap(cmap, 0, 0.8)
 
         for lvl in self.structure.level_l:
-            if lvl not in precision_vs_recall_multi_conf_15 or lvl not in precision_vs_recall_multi_conf_1:
-                self.logger.info(f"Level {lvl} not found in precision_vs_recall data.")
+            if (
+                lvl not in precision_vs_recall_multi_conf_15
+            ) or (
+                lvl not in precision_vs_recall_multi_conf_1
+            ):
+                self.logger.info(
+                    f"Level {lvl} not found in precision_vs_recall data."
+                )
                 continue
             fig, ax = plt.subplots(figsize=(15, 6))
             for precision_vs_recall, n in (
@@ -732,15 +866,20 @@ class Codifier(ABC):
                             s=80
                         )
                         ax.text(
-                            precision_vs_recall[lvl].loc[th, 'recall'] + 0.0005,
-                            precision_vs_recall[lvl].loc[th, 'precision'] + 0.003,
+                            precision_vs_recall[lvl].loc[
+                                th, 'recall'
+                            ] + 0.0005,
+                            precision_vs_recall[lvl].loc[
+                                th, 'precision'
+                            ] + 0.003,
                             f'{th}',
                             size=9,
                             color='blue'
                         )
                     else:
                         self.logger.info(
-                            f"Threshold {th} not found for level {lvl} in precision_vs_recall_multi_conf_{n}.")
+                            f"Threshold {th} not found for level {lvl} in precision_vs_recall_multi_conf_{n}."
+                        )
             ax.set_xlim((0, 1.002))
             all_precisions = pd.concat([
                 precision_vs_recall_multi_conf_15[lvl]['precision'],
@@ -757,81 +896,123 @@ class Codifier(ABC):
             ax.set_xlabel('Recall')
             ax.set_ylabel('Precision')
             ax.set_title(
-                f'Precision vs Recall for {version} {lvl}', fontsize=18)
+                f'Precision vs Recall for {version} {lvl}', fontsize=18
+            )
             ax.grid(True)
             plt.show()
+
+    def get_top_k_accuracy(self, df_pred, k):
+        df_pred.columns = ["gt", "labels"]
+        n_labels = len(df_pred["labels"].iloc[0])
+        if k > n_labels:
+            k=n_labels
+        hits = df_pred.apply(
+            lambda row: row["gt"] in row["labels"][:k],
+            axis=1
+        )
+        return hits.mean()
+
 
     def evaluate(self,
                  source='all',
                  get_curve=True,
                  simplify=True,
-                 version='model'
+                 version='model',
+                 k=5
                  ):
         """
-        Evaluate the model's performance on the test dataset by computing metrics and optionally plotting curves.
+        Evaluate the model's performance on the test dataset by computing
+        metrics and optionally plotting curves.
 
         Parameters
         ----------
         source : str, default 'all'
-            If not 'all', filters the test set to include only rows from this source.
+            If not 'all', filters the test set to include only rows from this
+            source.
         get_curve : bool, default True
-            If True, plots precision vs recall curves using `plot_evaluate_curve`.
+            If True, plots precision vs recall curves using
+            `plot_evaluate_curve`.
         simplify : bool, default True
-            If True, returns only a dictionary of metrics (accuracy, F1 scores).
-            If False, also returns a detailed classification report for each hierarchical level.
+            If True, returns only a dictionary of metrics (accuracy, F1 scores)
+            If False, also returns a detailed classification report for each
+            hierarchical level.
         version : str, default 'model'
             Identifier for the evaluation run, used in plot titles.
 
         Returns
         -------
         dict
-            If `simplify=True`, returns a dictionary containing accuracy and F1 scores (micro, macro, weighted) per hierarchical level.
+            If `simplify=True`, returns a dictionary containing accuracy and F1
+            scores (micro, macro, weighted) per hierarchical level.
         tuple
-            If `simplify=False`, returns a tuple `(metrics, report)` where `report` contains the detailed classification reports per level.
+            If `simplify=False`, returns a tuple `(metrics, report)` where
+            `report` contains the detailed classification reports per level.
 
         Notes
         -----
         - Filters the test set based on the provided source.
-        - Checks for missing or unrepresented codes in the test set using `check_codes`.
+        - Checks for missing or unrepresented codes in the test set using
+          `check_codes`.
         - Generates predictions for the test set with `get_preds_test_set`.
         - Computes standard evaluation metrics for each hierarchical level.
-        - If `get_curve` is True, calls `plot_evaluate_curve` to visualize precision vs recall for n_classes=1 and 15.
-        - Uses zero_division=0 for F1 scores to handle cases where a class has no predicted samples.
+        - If `get_curve` is True, calls `plot_evaluate_curve` to visualize
+          precision vs recall for n_classes=1 and 15.
+        - Uses zero_division=0 for F1 scores to handle cases where a class has
+          no predicted samples.
         """
+        # verifies if test_df is setted
+        if self.test_df is None:
+            raise ValueError('Cannot evaluate: parameter "test_df" must not be None. Assign a test DataFrame to the instance before calling evaluate().')
+        # choose witch source from 3th column from test set is used for evaluation
         if source != 'all':
+            if 'source' not in self.test_df.columns:
+                raise ValueError('Source code filtering requested but no source column present in "test_df".')
             if source not in self.test_df['source'].values:
                 raise ValueError(
-                    f'The source value {source} is not present in the source column.')
+                    f'The source value {source} is not present in the source column.'
+                )
             test_set = self.test_df[self.test_df['source'] == source]
         else:
             test_set = self.test_df.copy()
         self.logger.info(
-            f'Test set size {len(test_set)} for source {source}')
+            f'Test set size {len(test_set)} for source {source}'
+        )
+        # clean codes test set
         self.check_codes(test_set, f'test_set_{source}', False)
         # Se ejecuta get_preds_test_set
         preds_test_set = self.get_preds_test_set(
-            test_set=test_set, n_classes=1)
+            test_set=test_set, n_classes=len(self.structure.reversed_hierarchy)
+        )
         df_gt = test_set.merge(
-            preds_test_set, left_index=True, right_index=True)
+            preds_test_set, left_index=True, right_index=True
+        )
         metrics = dict()
         report = dict()
         if get_curve:
             self.plot_evaluate_curve(
-                test_set=test_set,
+                df_gt=df_gt,
                 version=version
             )
         for lvl in self.structure.level_l:
             df_gt_list = df_gt[f'gt_{lvl}'].astype(str).tolist()
             pred_label = [label[0] for label in df_gt[f'label_{lvl}']]
             accuracy = accuracy_score(df_gt_list, pred_label)
-            f1_micro = f1_score(df_gt_list, pred_label,
-                                average='micro', zero_division=0)
-            f1_macro = f1_score(df_gt_list, pred_label,
-                                average='macro', zero_division=0)
-            f1_weighted = f1_score(df_gt_list, pred_label,
-                                   average='weighted', zero_division=0)
+            top_k_accuracy = self.get_top_k_accuracy(df_pred=df_gt[[f'gt_{lvl}', f'label_{lvl}']], k=k)
+            f1_micro = f1_score(
+                df_gt_list, pred_label,
+                average='micro', zero_division=0
+            )
+            f1_macro = f1_score(
+                df_gt_list, pred_label,
+                average='macro', zero_division=0
+            )
+            f1_weighted = f1_score(
+                df_gt_list, pred_label,
+                average='weighted', zero_division=0
+            )
             metrics[lvl] = {
                 'accuracy': accuracy,
+                f'top_{k}_accuracy': top_k_accuracy,
                 'f1_score': {
                     'micro': f1_micro,
                     'macro': f1_macro,
@@ -840,7 +1021,10 @@ class Codifier(ABC):
             }
             if not simplify:
                 report[lvl] = classification_report(
-                    df_gt_list, pred_label, labels=sorted(list(set(df_gt_list))))
+                    df_gt_list,
+                    pred_label,
+                    labels=sorted(list(set(df_gt_list)))
+                )
 
         if simplify:
             return metrics
@@ -867,10 +1051,12 @@ class Codifier(ABC):
         threshold : float
             Minimum confidence value (0-1) to include a predicted label.
         original_code_l : list, optional
-            Original codes for direct recoding. If provided, predictions may be overridden
-            by direct correspondences for codes that map unambiguously.
+            Original codes for direct recoding. If provided, predictions may be
+            overridden by direct correspondences for codes that map
+            unambiguously.
         identifier_l : list, optional
-            Unique identifiers corresponding to each description. Defaults to sequential integers.
+            Unique identifiers corresponding to each description. Defaults to
+            sequential integers.
 
         Returns
         -------
@@ -886,10 +1072,14 @@ class Codifier(ABC):
 
         Notes
         -----
-        - Handles direct recoding using `self.correspondences` if `original_code_l` is provided.
-        - For non-direct recoding, predictions are obtained from `get_pred_for_batch`.
-        - Confidence scores are normalized if original codes restrict possible labels.
-        - Predictions are filtered based on the confidence threshold and limited to `n_classes` according to mode.
+        - Handles direct recoding using `self.correspondences` if
+          `original_code_l` is provided.
+        - For non-direct recoding, predictions are obtained from
+          `take_preds_bottom_up`.
+        - Confidence scores are normalized if original codes restrict possible
+          labels.
+        - Predictions are filtered based on the confidence threshold and
+          limited to `n_classes` according to mode.
         """
         if identifier_l is None:
             identifier_l = list(range(len(desc_l)))
@@ -900,7 +1090,9 @@ class Codifier(ABC):
         else:
             raise ValueError
 
-        hierarchical_level_name = self.structure.level_l[hierarchical_level - 1]
+        hierarchical_level_name = self.structure.level_l[
+            hierarchical_level - 1
+        ]
 
         idxs = range(len(desc_l))
         desc_l_not_direct_recoding = desc_l
@@ -932,7 +1124,7 @@ class Codifier(ABC):
                             'confidence': (100,),
                             'hierarchical_level': hierarchical_level,
                             'identifier': identifier_l[idx],
-                            'title': (self.structure.titles[tuple(filt)[0]])
+                            'title': (self.structure.titles[tuple(filt)[0]],)
                         }
             idxs_not_direct_recoding = [
                 idx for idx in idxs
@@ -952,7 +1144,7 @@ class Codifier(ABC):
             idxs_not_direct_recoding = [
                 idx
                 for idx, _ in enumerate(idxs)
-                ]
+            ]
             desc_l_not_direct_recoding = [
                 desc
                 for idx, desc in enumerate(desc_l)
@@ -961,10 +1153,10 @@ class Codifier(ABC):
 
             original_code_l = [None]*len(desc_l)
 
-        raw_predictions = self.get_pred_for_batch(
+        raw_predictions = self.take_preds_bottom_up(
             desc_l_not_direct_recoding,
             idxs_not_direct_recoding,
-            self.preprocess
+            callable(self.preprocess)
         )
 
         for idx, original_code in zip(
@@ -1018,7 +1210,7 @@ class Codifier(ABC):
                 'title': tuple([
                     self.structure.titles[label]
                     for label in pred_df_show['labels'].tolist()
-                    ])
+                ])
             }
 
         return prediction_l

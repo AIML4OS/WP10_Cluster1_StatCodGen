@@ -10,7 +10,9 @@ import unicodedata
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.colors as colors
-
+from SPARQLWrapper import SPARQLWrapper, CSV
+from io import StringIO
+import pandas as pd
 
 def preprocess_text(input_str, language):
     """
@@ -278,3 +280,33 @@ def get_combined_evaluate_curve(
             f'Precision vs Recall for {name_0}-{name_1} {lvl}', fontsize=18)
         ax.grid(True)
         plt.show()
+
+def select_query_sparql(endpoint, query):
+    """
+    Executes a SPARQL SELECT query on a given endpoint and returns the
+    results as a pandas DataFrame.
+
+    Parameters
+    ----------
+    endpoint : str
+        The URL of the SPARQL endpoint to query.
+    query : str
+        The SPARQL SELECT query string to be executed.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame containing the query results, parsed from CSV format.
+
+    Notes
+    -----
+    This function uses the SPARQLWrapper library to send queries and retrieve results
+    in CSV format. It assumes the query is a valid SPARQL SELECT query.
+
+    """
+    sparql = SPARQLWrapper(endpoint)
+    sparql.setQuery(query)
+    sparql.setReturnFormat(CSV)
+    results = sparql.query().convert()
+    results_df = pd.read_csv(StringIO(results.decode("utf-8")))
+    return results_df

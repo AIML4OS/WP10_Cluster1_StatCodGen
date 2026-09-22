@@ -33,8 +33,9 @@ from abc import ABC
 from collections import Counter, defaultdict
 import statistics as stats
 import re
-from data_handler import read_json
-from prompt_synt_data_maker import PromptSyntDataMaker
+
+from statcodgen.data_handler import read_json
+from statcodgen.prompt_synt_data_maker import PromptSyntDataMaker
 
 
 class SyntDataGenerator(ABC):

@@ -27,8 +27,12 @@ dependencies = [
     'scikit-learn',
     'nltk',
     'xlrd',
-    'request',
-    'httpx'
+    'requests',
+    'httpx',
+    "transformers==4.37.1",
+    "tokenizers==0.15.1",
+    "accelerate==0.25.0",
+    "huggingface-hub>=0.19.3,<1.0",
 ]
 
 classifiers = [
@@ -38,22 +42,13 @@ classifiers = [
 
 
 [project.optional-dependencies]
-bert = [
-    'transformers==4.37.1',
-    'tokenizers==0.15.1',
-    'datasets==2.16.1',
-    'torch',
-    'accelerate==0.25.0',
-    'huggingface_hub==0.20.3',
-    'fsspec==2023.10.0'
-]
 api = ["groq", "httpx"]
 tests = ["pytest"]
 
 
 
 [project.urls]
-Homepage = 'https://gitlab.ine.es/prod-estadistica/metodologia/clasificaciones/statcodgen'
+Homepage = 'https://github.com/AIML4OS/WP10_Cluster1_StatCodGen'
 
 [tool.setuptools.packages.find]
 where = ["."]

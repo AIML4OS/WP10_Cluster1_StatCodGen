@@ -1,36 +1,61 @@
 # -*- coding: utf-8 -*-
+# ------------------------------------------------------------------------------
+# Copyright (C) [2025] Instituto Nacional de Estadística
+#
+# Este archivo forma parte del proyecto statcodgen.
+#
+# Licenciado bajo la Licencia Pública de la Unión Europea (EUPL) v.1.2.
+# Puede obtener una copia de la licencia en la raiz de este proyecto o en:
+# https://eupl.eu/1.2/es/
+#
+# A menos que se indique lo contrario, este software se distribuye
+# "TAL CUAL", SIN GARANTÍAS NI CONDICIONES DE NINGÚN TIPO.
+# Consulte la licencia para conocer los términos específicos.
+# ------------------------------------------------------------------------------
+# Copyright (C) [2025] National Institute of Statistics
+#
+# This file is part of the statcodgen project.
+#
+# Licensed under the European Union Public License (EUPL) v.1.2.
+# You can obtain a copy of the license at the root of this project or at:
+# https://eupl.eu/1.2/es/
+#
+# Unless otherwise indicated, this software is distributed
+# "AS IS", WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
+# See the license for specific terms.
+# ------------------------------------------------------------------------------
 """
 Created on Thu Aug 28 10:02:20 2025
 
 @author: git.metodologia@ine.es
 """
-import pandas as pd
 import fasttext as ft
 from time import time
 import os
 
-from my_utils import preprocess_text
-from codifier import Codifier
+from statcodgen.codifier import Codifier
 
 
 class CodifierFastText(Codifier):
     """
     FastText-based text classifier extending the abstract Codifier base class.
 
-    This class implements the abstract methods from Codifier (`train`, `save`, `load`,
-    `get_pred_for_batch`) using FastText's supervised training. It supports hierarchical
-    classification for CNAE codes, optional preprocessing, and training with pre-trained
-    vectors.
+    This class implements the abstract methods from Codifier (`train`, `save`,
+    `load`, `get_pred_for_batch`) using FastText's supervised training.
 
     Inherited Attributes:
-        - root_path (str): Base directory for storing/loading models and temporary files.
+        - root_path (str): Base directory for storing/loading models and
+          temporary files.
         - logger (logging.Logger): Logger for training and evaluation messages.
         - min_lenght_texts (int): Minimum text length for preprocessing.
-        - structure: Hierarchy structure instance containing levels and reversed hierarchy.
-        - model: Placeholder for the trained FastText model (initialized to None).
+        - structure: Hierarchy structure instance containing levels and
+          reversed hierarchy.
+        - model: Placeholder for the trained FastText model (initialized to
+          None).
         - train_df (pd.DataFrame): Preprocessed training dataset.
         - test_df (pd.DataFrame): Preprocessed test dataset.
-        - correspondences (pd.Series or None): Optional mapping for direct recoding of CNAE codes.
+        - correspondences (pd.Series or None): Optional mapping for direct
+          recoding of CNAE codes.
 
     Methods:
     --------
@@ -38,51 +63,48 @@ class CodifierFastText(Codifier):
         Loads a pre-trained FastText model from the specified file.
 
     get_train_set_text(train_set: pd.DataFrame) -> list[str]:
-        Converts a DataFrame of labels and texts into FastText supervised training format.
+        Converts a DataFrame of labels and texts into FastText supervised
+        training format.
         Each line is: "__label__<label> <text>".
 
     train(**kwargs):
-        Trains a FastText supervised model on the `train_df` or a provided dataset.
+        Trains a FastText supervised model on the `train_df` or a provided
+        dataset.
 
         Optional kwargs:
             - epoch (int, default=10): Number of training epochs.
             - lr (float, default=0.1): Learning rate.
             - wordNgrams (int, default=3): Max word n-gram length.
-            - pretrained_vectors (str, optional): Filename of pre-trained word vectors.
-            - train_set (pd.DataFrame, default=self.train_df): Training dataset.
+            - pretrained_vectors (str, optional): Filename of pre-trained word
+              vectors.
+            - train_set (pd.DataFrame, default=self.train_df): Training dataset
 
     save(name: str):
         Saves the current FastText model to a file in `root_path`.
 
-    get_pred_for_batch(samples: list[str], idxs: list[int], clean_samples: bool=False) -> dict:
-        Predicts hierarchical labels and confidence scores for a batch of text samples.
+    get_pred_for_batch(
+        samples: list[str]
+    ) -> list[tuple[list[str], list[float]]]:
+        Predicts labels and confidence scores for a batch of text samples.
 
         Parameters:
             - samples: Text samples to predict.
-            - idxs: Identifiers corresponding to each sample.
-            - clean_samples: If True, preprocess texts before prediction.
 
         Returns:
-            dict mapping each index in `idxs` to a dictionary containing hierarchical
-            labels ('label_<level>') and confidence scores ('conf_<level>') for each level
-            in the hierarchy.
-
-    Notes:
-    ------
-    - Hierarchical prediction supports aggregation from class-level predictions
-      to higher levels (group, division, section).
-    - Supports integration with the parent class's `get_top_n_predictions` and
-      `get_preds_test_set` for batch evaluation.
-    - Preprocessing leverages `preprocess_text` as used in the parent Codifier class.
-    - Time taken for training is logged using the inherited `logger`.
+            A list where each element corresponds to one input sample and
+            contains a tuple with:
+                * a list of predicted labels (strings), with the '__label__'
+                prefix removed,
+                * a list of confidence scores (floats) for the corresponding
+                labels
     """
 
     def load(self, name):
         """
         Load a pre-trained FastText model from a file.
 
-        This method initializes the `model` attribute by loading a FastText supervised
-        model from the specified file within the `root_path`.
+        This method initializes the `model` attribute by loading a FastText
+        supervised model from the specified file within the `root_path`.
 
         Parameters
         ----------
@@ -101,8 +123,8 @@ class CodifierFastText(Codifier):
         """
         Convert a DataFrame into FastText supervised training format.
 
-        This method formats each row of the input DataFrame as a string suitable
-        for FastText training. Each line follows the pattern:
+        This method formats each row of the input DataFrame as a string
+        suitable for FastText training. Each line follows the pattern:
         "__label__<label> <text>".
 
         Parameters
@@ -134,9 +156,9 @@ class CodifierFastText(Codifier):
         """
         Train a FastText supervised model on the provided dataset.
 
-        This method prepares the training data in FastText format, optionally uses
-        pre-trained word vectors, and trains a supervised model. Training duration
-        is logged.
+        This method prepares the training data in FastText format, optionally
+        uses pre-trained word vectors, and trains a supervised model. Training
+        duration is logged.
 
         Parameters
         ----------
@@ -151,11 +173,13 @@ class CodifierFastText(Codifier):
             - pretrained_vectors : str or None, default=None
                 Filename of pre-trained word vectors to use.
             - train_set : pandas.DataFrame, default=self.train_df
-                Training dataset with labels in the first column and text in the second.
+                Training dataset with labels in the first column and text in
+                the second.
 
         Notes
         -----
-        - The training data is temporarily written to a text file in `root_path`.
+        - The training data is temporarily written to a text file in
+          `root_path`.
         - If `pretrained_vectors` is provided, it is loaded from `root_path`.
         - The trained model replaces any existing model in `self.model`.
         - Training time is measured and logged in hours, minutes, and seconds.
@@ -227,128 +251,58 @@ class CodifierFastText(Codifier):
         """
         self.model.save_model(os.path.join(self.root_path, name))
 
-    def get_pred_for_batch(self, samples, idxs, clean_samples=False):
+    def get_pred_for_batch(self, samples):
         """
-        Generates hierarchical predictions for a batch of samples.
+        Generate predictions for a batch of input samples.
 
-        This method takes a batch of input samples, optionally cleans
-        them using a preprocessing function, obtains raw predictions
-        from the model, and structures them into a hierarchical
-        format according to `self.structure`.
+        This method calls the underlying model to obtain raw predictions
+        (labels and confidence scores) for each input in the batch, and
+        post-processes them by removing the `__label__` prefix from labels.
 
         Parameters
         ----------
         samples : list of str
-            The input texts or data samples for which predictions are generated.
-        idxs : list
-            Identifiers or indices corresponding to each sample in the batch.
-        clean_samples : bool, optional (default=False)
-            Whether to preprocess/clean the samples before prediction using
-            `preprocess_text`.
+            A batch of input texts to classify.
 
         Returns
         -------
-        dict
-            A dictionary mapping each index in `idxs` to its hierarchical
-            predictions. For each sample, the prediction dictionary contains:
-            - `label_{lvl}`: List of predicted labels for hierarchy level `lvl`.
-            - `conf_{lvl}`: Corresponding list of confidence scores, rounded to 4 decimals.
+        list of tuples
+            A list where each element corresponds to one input sample.
+            Each element is a tuple of two lists:
+            - labels (list of str): predicted labels for the sample.
+            - confidences (list of float): confidence scores for the labels.
 
         Notes
         -----
-        - The method assumes that `self.model` has a `predict` method returning
-          raw prediction scores and labels.
-        - The hierarchical structure is defined by `self.structure`, which
-          should include:
-            - `level_l`: List of hierarchy levels (from top to bottom).
-            - `reversed_hierarchy`: Mapping from leaf labels to their hierarchy.
-        - Confidence scores are summed for higher levels in the hierarchy.
-        - Predictions for each level are sorted in descending order of confidence.
-        - This method works with multi-level classification scenarios where
-          leaf predictions propagate confidence to higher levels.
+        This method is prepare for a fasttext model so:
+            - The method assumes `self.model` provides a `predict` method that
+              accepts a list of inputs and returns a tuple `(labels, scores)`,
+              where:
+                * `labels[i]` is the list of top-k predicted labels for sample
+                i.
+                * `scores[i]` is the list of corresponding confidence scores.
+            - Label strings are expected to be prefixed with `__label__`, which
+              this method strips out before returning.
+            - The number of predictions (`k`) is set to the total number of
+              labels available in the model.
 
         Example
         -------
-        >>> samples = ["text1", "text2"]
-        >>> idxs = [0, 1]
-        >>> preds = obj.get_pred_for_batch(samples, idxs, clean_samples=True)
-        >>> preds[0]['label_2']  # leaf-level labels for first sample
+        >>> samples = ["example text 1", "example text 2"]
+        >>> preds = obj.get_pred_for_batch(samples)
+        >>> preds[0][0]   # predicted labels for the first sample
         ['label_a', 'label_b', ...]
-        >>> preds[0]['conf_2']   # corresponding confidence scores
+        >>> preds[0][1]   # corresponding confidence scores
         [0.95, 0.87, ...]
         """
-        if clean_samples:
-            samples = [
-                preprocess_text(sample, self.language) for sample in samples
-            ]
-
         preds_raw = self.model.predict(
             samples,
             k=len(self.model.labels)
         )
-
-        preds_raw = zip(preds_raw[0], preds_raw[1])
-
-        hierarchical_preds = {}
-        for idx, pred_raw in zip(idxs, preds_raw):
-            pred = pd.DataFrame.from_dict(
-                dict(zip(pred_raw[0], pred_raw[1])),
-                orient='index'
-            )
-            whole_pred = pd.DataFrame.from_dict(
-                pred.apply(
-                    lambda row: self.structure.reversed_hierarchy[
-                        row.name.replace('__label__', '')
-                    ], axis=1
-                ).to_dict(),
-                orient='index'
-            ).merge(
-                pred, left_index=True, right_index=True
-            ).rename(
-                columns={0: 'conf'}
-            ).set_index(
-                self.structure.level_l[-1]
-            ).sort_values(
-                'conf', ascending=False
-            )
-
-            hierarchical_pred = dict()
-            for lvl in self.structure.level_l:
-                hierarchical_pred[f'label_{lvl}'] = []
-                hierarchical_pred[f'conf_{lvl}'] = []
-
-            class_labels = whole_pred.index.tolist()
-            class_confs = whole_pred.conf.astype(float).tolist()
-
-            for class_label, class_conf in zip(class_labels, class_confs):
-                hierarchical_pred[f'label_{self.structure.level_l[-1]}'].append(class_label)
-                hierarchical_pred[f'conf_{self.structure.level_l[-1]}'].append(round(class_conf, 4))
-                for lvl in self.structure.level_l[:-1]:
-                    lvl_label = whole_pred.loc[class_label, lvl]
-                    if lvl_label not in hierarchical_pred[f'label_{lvl}']:
-                        lvl_conf = whole_pred[
-                            whole_pred[lvl] == lvl_label
-                        ].conf.sum().round(4)
-                        hierarchical_pred[f'label_{lvl}'].append(
-                            lvl_label
-                        )
-                        hierarchical_pred[f'conf_{lvl}'].append(
-                            round(lvl_conf, 4)
-                        )
-
-            # sort for each level
-            for lvl in self.structure.level_l[:-1]:
-                sorted_pairs = sorted(list(zip(
-                    hierarchical_pred[f'conf_{lvl}'],
-                    hierarchical_pred[f'label_{lvl}']
-                )), reverse=True)
-                hierarchical_pred[f'label_{lvl}'] = [
-                    l for c, l in sorted_pairs
-                ]
-                hierarchical_pred[f'conf_{lvl}'] = [
-                    c for c, l in sorted_pairs
-                ]
-
-            hierarchical_preds[idx] = hierarchical_pred
-
-        return hierarchical_preds
+        preds_zip = zip(preds_raw[0], preds_raw[1])
+        clean_preds = [None] * len(samples)
+        for idx, pred_zip in enumerate(preds_zip):
+            label_l = [label.replace('__label__', '') for label in pred_zip[0]]
+            conf_l = list(pred_zip[1])
+            clean_preds[idx] = (label_l, conf_l)
+        return clean_preds

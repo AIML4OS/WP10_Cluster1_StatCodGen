@@ -31,6 +31,7 @@ Created on Tue Sep  9 13:40:12 2025
 """
 import numpy as np
 import torch
+import os
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -39,11 +40,11 @@ from transformers import (
     DataCollatorWithPadding,
     pipeline,
 )
-import os
 from datasets import Dataset, ClassLabel, DatasetDict
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, top_k_accuracy_score
 from sklearn.preprocessing import LabelEncoder
-from codifier import Codifier
+
+from statcodgen.codifier import Codifier
 
 
 class CodifierBERT(Codifier):
@@ -72,6 +73,16 @@ class CodifierBERT(Codifier):
         Correspondence dataframe linking labels or hierarchical mappings with other classifications.
     min_lenght_texts : int, default=3
         Minimum number of tokens required for a text to be considered valid.
+    preprocess_text : callable function or None Default Value: None.
+        If a text preprocessing function is given, applies such function. 
+        If None, does not apply text preprocessing.
+    temperature : float or None, default=None
+        Temperature scaling factor for calibrating model confidence. A value
+        greater than 1 softens the output distribution (fixes overconfidence),
+        while a value below 1 sharpens it (fixes underconfidence). If None,
+        no temperature scaling is applied and the standard pipeline is used
+        for inference
+  
 
     Attributes
     ----------
@@ -91,6 +102,8 @@ class CodifierBERT(Codifier):
         Processed Hugging Face dataset for training and validation.
     classifier : transformers.Pipeline
         Inference pipeline for batched predictions.
+    temperature : float or None
+        Temperature scaling factor. See parameter description above.
     """
 
     def __init__(self,
@@ -101,9 +114,9 @@ class CodifierBERT(Codifier):
                  test_df=None,
                  corres_df=None,
                  min_lenght_texts=3,
-                 device='cuda:1',
-                 preprocess=True,
-                 language='es'
+                 device='cuda',
+                 preprocess=None,
+                 temperature=None
                  ):
         super().__init__(
             structure_instance=structure_instance,
@@ -113,9 +126,14 @@ class CodifierBERT(Codifier):
             corres_df=corres_df,
             min_lenght_texts=min_lenght_texts,
             preprocess=preprocess,
-            language=language
         )
-        self.model_id = model_id
+        local_path = os.path.abspath(
+            os.path.join(self.root_path, model_id)
+        )
+        if os.path.exists(local_path):
+            self.model_id = local_path
+        else:
+            self.model_id = model_id
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
         self.label_encoder = LabelEncoder()
         self.label_encoder.fit(list(self.structure.reversed_hierarchy.keys()))
@@ -125,6 +143,7 @@ class CodifierBERT(Codifier):
         self.device = device
         self.train_data = None
         self.classifier = None
+        self.temperature = temperature
 
     def tokenize(self, example, max_seq_len=256):
         """
@@ -241,7 +260,7 @@ class CodifierBERT(Codifier):
         data["validation"] = data.pop("test")
         self.train_data = data
 
-    def train(self, train_args={}, batched=True, test_size=0.05, seed=42):
+    def train(self, train_args=None, batched=True, test_size=0.05, seed=42):
         """
         Fine-tunes the BERT model using Hugging Face's Trainer API.
 
@@ -304,6 +323,8 @@ class CodifierBERT(Codifier):
         None
             Trains and initializes the classification pipeline.
         """
+        if train_args is None:
+            train_args = {}
         args = dict(
             output_dir=self.root_path,
             num_train_epochs=2,
@@ -316,7 +337,7 @@ class CodifierBERT(Codifier):
             weight_decay=0.01,
             logging_dir='./logs',
             logging_strategy='epoch',
-            eval_strategy='epoch',
+            evaluation_strategy='epoch',
             save_strategy='no',
             fp16=False,
             load_best_model_at_end=False,
@@ -393,6 +414,92 @@ class CodifierBERT(Codifier):
         self.model = AutoModelForSequenceClassification.from_pretrained(path)
         self.get_pipeline()
 
+    def get_logits(self, samples, batch_size=16):
+        """
+        Computes raw logits for a list of text samples using the loaded model.
+
+        Processes samples in mini-batches to avoid GPU memory overflow, moving
+        each batch to the model's device and immediately releasing it after
+        the forward pass.
+
+        Parameters
+        ----------
+        samples : list of str
+            Input text samples to classify.
+        batch_size : int, default=16
+            Number of samples processed per forward pass. Reduce if GPU
+            memory is limited, increase for faster inference.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor of shape (n_samples, n_classes) containing the raw
+            unnormalized logits for each sample. Returned on CPU.
+
+        Notes
+        -----
+        Padding is applied within each mini-batch, so sequences are only
+        padded to the longest sample in that batch rather than across the
+        full input, reducing memory usage compared to full-batch inference.
+        GPU memory is explicitly freed after each batch via torch.cuda.empty_cache().
+        """
+        model_device = next(self.model.parameters()).device
+        all_logits = []
+        self.model.eval()
+        # It made by batch because of gpu memory
+        for i in range(0, len(samples), batch_size):
+            batch = samples[i: i + batch_size]
+            inputs = self.tokenizer(
+                batch,
+                truncation=True,
+                padding=True,
+                return_tensors="pt"
+            )
+            inputs = {k: v.to(model_device) for k, v in inputs.items()}
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                all_logits.append(outputs.logits.cpu())
+            del inputs, outputs
+            torch.cuda.empty_cache()
+
+        return torch.cat(all_logits, dim=0)
+
+    def predict_proba_calibrated(self, samples):
+        """
+        Computes temperature-scaled class probabilities for a list of text samples.
+
+        Applies temperature scaling to the raw logits before the softmax, which
+        calibrates overconfident or underconfident models by softening or sharpening
+        the output distribution. A temperature greater than 1 flattens probabilities
+        toward a uniform distribution (fixes overconfidence), while a temperature
+        below 1 sharpens them toward 0 or 1 (fixes underconfidence).
+
+        Parameters
+        ----------
+        samples : list of str
+            Input text samples to classify.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape (n_samples, n_classes) containing the calibrated
+            class probabilities for each sample. Values are in [0, 1] and
+            sum to 1 along axis=1.
+
+        Notes
+        -----
+        Requires self.temperature to be set (float, > 0) before calling.
+        For uncalibrated inference use get_pred_for_batch() with temperature=None.
+        Internally calls get_logits(), so batching and device management
+        follow that method's behavior.
+        """
+        logits = self.get_logits(samples)
+
+        scaled_logits = logits / self.temperature
+        probs = torch.softmax(scaled_logits, dim=-1)
+
+        return probs.cpu().numpy()
+
     def get_pred_for_batch(self, samples):
         """
         Generate predictions for a batch of text samples using Hugging Face pipeline.
@@ -409,10 +516,20 @@ class CodifierBERT(Codifier):
             - labels (list of str): predicted labels sorted by confidence.
             - confidences (list of float): corresponding probabilities.
         """
-        results = self.classifier(samples, truncation=True)
-        formatted = [None]*len(samples)
-        for index, sample_result in enumerate(results):
-            labels = [item["label"] for item in sample_result]
-            confidences = [item["score"] for item in sample_result]
-            formatted[index] = (labels, confidences)
+        formatted = [None] * len(samples)
+        if self.temperature is None:
+            results = self.classifier(samples, truncation=True)
+            for index, sample_result in enumerate(results):
+                labels = [item["label"] for item in sample_result]
+                confidences = [item["score"] for item in sample_result]
+                formatted[index] = (labels, confidences)
+        else:
+            results = self.predict_proba_calibrated(samples)
+            id2label = self.model.config.id2label
+            for index, p in enumerate(results):
+                pairs = [(id2label[i], float(p[i])) for i in range(len(p))]
+                pairs.sort(key=lambda x: x[1], reverse=True)
+                labels_sorted = [x[0] for x in pairs]
+                probs_sorted = [x[1] for x in pairs]
+                formatted[index] = (labels_sorted, probs_sorted)
         return formatted
