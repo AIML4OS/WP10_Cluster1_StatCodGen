@@ -21,7 +21,7 @@ dependencies = [
     'pandas',
     'numpy==1.26.2',
     'SPARQLWrapper',
-    'fasttext-wheel',
+    'fasttext',
     'openpyxl',
     'matplotlib',
     'scikit-learn',
